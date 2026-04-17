@@ -1,0 +1,20 @@
+# Julia
+Manifest.toml
+/docs/build/
+/docs/site/
+*.cov
+*.mem
+deps/deps.jl
+deps/build.log
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Claude / AI configuration — local only
+.claude/
+CLAUDE.md
