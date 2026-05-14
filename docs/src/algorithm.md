@@ -107,5 +107,5 @@ The low-level driver returns an integer `ifail`:
 | `15` | `emax < 1` |
 | `17` | `wrksub` too small for the given budget |
 
-These are mapped to `SciMLBase.ReturnCode` values by [`__solvebp_call`](@ref):
+These are mapped to `SciMLBase.ReturnCode` values by the Integrals.jl integration hook:
 `ifail=0` → `Success`, `ifail=1` → `MaxIters`, otherwise → `Failure`.

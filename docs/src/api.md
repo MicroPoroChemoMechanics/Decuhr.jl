@@ -1,5 +1,11 @@
 # API Reference
 
+## Module documentation
+
+```@docs
+DECUHR.DECUHR
+```
+
 ## Algorithm type
 
 ```@docs
