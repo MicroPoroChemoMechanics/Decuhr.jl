@@ -256,6 +256,8 @@ function _adaptive_integrate!(
     order = collect(1:ndim)
     x_work = zeros(Float64, ndim)
     null_work = zeros(TV, numfun, 8)   # funsub output buffer
+    fs_g = zeros(Float64, ndim)   # scratch for the fully-symmetric sum (generators)
+    fs_x = zeros(Float64, ndim)   # scratch for the fully-symmetric sum (eval point)
 
     result = zeros(TV, numfun)
     abserr = zeros(TV, numfun)
@@ -275,7 +277,7 @@ function _adaptive_integrate!(
         _eval_rule!(
             ndim, view(centrs, :, 1), view(hwidts, :, 1),
             wtleng, g, w, errcof, numfun, funsub, scales, norms,
-            x_work, null_work,
+            x_work, null_work, fs_g, fs_x,
             view(values, :, 1), view(errors, :, 1), dref, gref, diff, order
         )
         dir[1] = dref[]
@@ -383,7 +385,7 @@ function _adaptive_integrate!(
             _eval_rule!(
                 ndim, view(centrs, :, vacant), view(hwidts, :, vacant),
                 wtleng, g, w, errcof, numfun, funsub, scales, norms,
-                x_work, null_work,
+                x_work, null_work, fs_g, fs_x,
                 view(values, :, vacant), view(errors, :, vacant),
                 dref, gref, diff, order
             )
@@ -413,7 +415,7 @@ function _adaptive_integrate!(
                 _eval_rule!(
                     ndim, view(centrs, :, idx2), view(hwidts, :, idx2),
                     wtleng, g, w, errcof, numfun, funsub, scales, norms,
-                    x_work, null_work,
+                    x_work, null_work, fs_g, fs_x,
                     view(values, :, idx2), view(errors, :, idx2),
                     dref, gref, diff, order
                 )

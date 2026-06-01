@@ -454,13 +454,19 @@ end
 
 # ============================================================
 # DEFSHR — fully symmetric sum over all sign changes and permutations.
-# Works on a local copy of g_col; the original is not modified.
+# Works on a mutable copy of g_col (g_scratch); the original is not modified.
+# `g_scratch` and `x_scratch` are caller-preallocated length-`ndim` buffers,
+# so this hot-path routine allocates nothing per call.
 # funsub(x, funvls) evaluates the integrand in-place.
 # ============================================================
-function _fully_symmetric_sum!(fulsms, center, hwidth, g_col, ndim, numfun, funsub, funvls)
+function _fully_symmetric_sum!(
+        fulsms, center, hwidth, g_col, ndim, numfun, funsub, funvls,
+        g_scratch, x_scratch
+    )
     fill!(fulsms, 0.0)
-    g = copy(g_col)     # local mutable copy
-    x = zeros(Float64, ndim)
+    g = g_scratch
+    copyto!(g, g_col)   # mutable copy into preallocated buffer
+    x = x_scratch
 
     while true
         # Set evaluation point from current permutation of g  (label 20)
@@ -532,6 +538,7 @@ end
 function _eval_rule!(
         ndim, center, hwidth, wtleng, g, w, errcof,
         numfun, funsub, scales, norms, x, null_work,
+        fs_g, fs_x,
         basval, rgnerr, direct_ref, greate_ref, diff, order
     )
 
@@ -604,7 +611,8 @@ function _eval_rule!(
     for col in 4:wtleng
         _fully_symmetric_sum!(
             fulsms, center, hwidth,
-            view(g, :, col), ndim, numfun, funsub, funvls
+            view(g, :, col), ndim, numfun, funsub, funvls,
+            fs_g, fs_x
         )
         for j in 1:numfun
             basval[j] += w[1, col] * fulsms[j]
