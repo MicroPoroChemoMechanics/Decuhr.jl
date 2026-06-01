@@ -130,6 +130,20 @@ const RC = SciMLBase.ReturnCode
             RC.Failure
     end
 
+    @testset "Solution stats expose neval and ifail" begin
+        f(u, _) = sin(u[1]) * cos(u[2])
+        prob = IntegralProblem(f, (zeros(2), fill(π / 2, 2)))
+        sol = solve(prob, DecuhrAlgorithm(); abstol = 1.0e-9)
+        @test sol.stats.numevals > 0
+        @test sol.stats.ifail == 0
+        # Singular case that exhausts the default budget keeps a usable result.
+        fs(u, _) = (u[1] * u[2])^(-0.5)
+        probs = IntegralProblem(fs, (zeros(2), ones(2)))
+        sols = solve(probs, DecuhrAlgorithm(singul = 2, alpha = -0.5); abstol = 1.0e-12)
+        @test sols.stats.numevals > 0
+        @test isapprox(sols.u, 4.0; rtol = 1.0e-3)   # correct even if retcode == MaxIters
+    end
+
     @testset "ForwardDiff: derivative w.r.t. a parameter (explicit alpha)" begin
         # ∫₀¹∫₀¹ p·(x·y)^(-1/2) dx dy = 4p ⇒ d/dp = 4
         g = ForwardDiff.derivative(2.0) do p
@@ -138,6 +152,22 @@ const RC = SciMLBase.ReturnCode
             sol = solve(
                 prob, DecuhrAlgorithm(singul = 2, alpha = -0.5);
                 abstol = 1.0e-8, reltol = 1.0e-6, maxiters = 300_000
+            )
+            sol.u
+        end
+        @test isapprox(g, 4.0; rtol = 1.0e-2)
+    end
+
+    @testset "ForwardDiff: derivative with auto-estimated alpha" begin
+        # Same integral, but alpha is NOT supplied: it must be auto-estimated on
+        # the primal integrand, and solve must remain differentiable.
+        # ∫₀¹∫₀¹ p·(x·y)^(-1/2) = 4p ⇒ d/dp = 4.
+        g = ForwardDiff.derivative(2.0) do p
+            f = (u, _) -> p * (u[1] * u[2])^(-0.5)
+            prob = IntegralProblem(f, (zeros(2), ones(2)))
+            sol = solve(
+                prob, DecuhrAlgorithm(singul = 2);
+                abstol = 1.0e-7, reltol = 1.0e-6, maxiters = 300_000
             )
             sol.u
         end

@@ -61,6 +61,24 @@ Four Genz–Malik-style fully-symmetric rules are available, selected via `key`:
 | `4`   | Degree-7  | any nD  | ``1 + 2n(n+2) + 2^n`` |
 | `0`   | Auto      | —       | key=1 if n=2, key=2 if n=3, else key=3 |
 
+## Result, error estimate and diagnostics
+
+DECUHR's error estimator is deliberately **conservative**: following the
+original Fortran `DEXTHR`, the pure extrapolation error is inflated by a
+heuristic constant before being compared with the tolerance.  A returned
+`retcode = MaxIters` therefore frequently accompanies a result that is in fact
+accurate to **better** than the requested tolerance — the *estimate* simply
+never dropped below it within the evaluation budget.
+
+Practical guidance:
+
+- Trust `sol.u`; read `sol.resid` for the (conservative) error estimate.
+- Raise `maxiters` and/or `wrksub` to let the estimate catch up to the true
+  accuracy if a certified `Success` is required.
+- `sol.stats.numevals` reports the number of integrand evaluations and
+  `sol.stats.ifail` the raw DECUHR code — handy to confirm you hit the budget
+  rather than a genuine problem.
+
 ## Generic value type and automatic differentiation
 
 All internal arrays that accumulate integrand values are parameterized on a
@@ -84,14 +102,16 @@ dI_dp = ForwardDiff.gradient(p -> solve(prob, DecuhrAlgorithm(alpha=0.0);
                                          abstol=1e-8).u, [1.0])
 ```
 
-!!! warning "Alpha auto-estimation and AD"
-    Automatic estimation of ``\alpha`` (triggered when `alpha ≤ -singul`)
-    uses `Float64` arithmetic internally and is **not compatible** with
-    dual-number value types.  When differentiating, always supply `alpha`
-    explicitly:
+!!! note "Alpha auto-estimation and AD"
+    Automatic estimation of ``\alpha`` (triggered when `alpha ≤ -singul`) runs
+    in `Float64` on the **primal** integrand — ``\alpha`` is the structural
+    homogeneity degree of the singularity and does not depend on the
+    differentiation seed — after which the integration proceeds in the
+    dual-number type.  Differentiating through `solve` therefore works **with
+    or without** an explicit `alpha`:
     ```julia
-    DecuhrAlgorithm(singul=2, alpha=-0.5)   # correct
-    DecuhrAlgorithm(singul=2)               # will error with dual numbers
+    DecuhrAlgorithm(singul=2, alpha=-0.5)   # explicit α
+    DecuhrAlgorithm(singul=2)               # α auto-estimated — also differentiable
     ```
 
 ## Error codes (`ifail`)
@@ -103,7 +123,7 @@ The low-level driver returns an integer `ifail`:
 | `0`  | Success — all tolerances satisfied |
 | `1`  | Budget (`maxiters`) exhausted |
 | `2`–`13` | Invalid input parameters (key, ndim, numfun, bounds, budget, tolerances, singul, logf, minpts, emax, wrksub) |
-| `14` | Integral may not converge (``\alpha \leq -\text{singul}`` after estimation, or dual-number type without explicit alpha) |
+| `14` | Integral may not converge (``\alpha \leq -\text{singul}`` even after auto-estimation) |
 | `15` | `emax < 1` |
 | `17` | `wrksub` too small for the given budget |
 

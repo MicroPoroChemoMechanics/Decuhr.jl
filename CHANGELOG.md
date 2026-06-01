@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `sol.stats` now exposes `numevals` (integrand-evaluation count) and `ifail`
+  (raw DECUHR return code), useful in particular to interpret a `MaxIters`
+  return code.
+- Automatic differentiation through `solve` now works **even when `alpha` is
+  auto-estimated**: the exponent is estimated on the primal integrand (it is a
+  structural property of the singularity, independent of the differentiation
+  seed) and the integration then proceeds in the dual-number type. Previously
+  this combination returned `ifail = 14`.
+
+### Changed
+
+- **Performance:** `_fully_symmetric_sum!` (Fortran `DEFSHR`) no longer
+  allocates a fresh generator copy and evaluation-point vector on every call;
+  two caller-preallocated scratch buffers are threaded through instead. The
+  result is **bit-for-bit identical**; allocations on a heavy singular case
+  (`∫(x·y)^(-1/2)`) drop from ~4.4 MB to ~1.5 MB (−67 %).
+
+### Documentation
+
+- Documented DECUHR's deliberately conservative error estimator: a `MaxIters`
+  return code often accompanies a result that is already accurate to better
+  than the requested tolerance.
+
+### Internal
+
+- Clarified the `BETA`-index clamp in the extrapolation weighted-correction
+  branch (a latent off-by-one out-of-bounds in the original Fortran at the
+  boundary `UPDATE = N-EMAX`) and hoisted the loop-invariant index.
+- Test suite expanded from 9 to 27 assertions (radial singularity, polynomial
+  exactness, rule-key sweep, parameter-validation return codes, solution stats,
+  ForwardDiff with explicit and auto-estimated `alpha`, small-`emax`
+  weighted-correction branch).
+
 ## v0.1.1 — Integrals.jl tuple-domain API
 
 ### Changed

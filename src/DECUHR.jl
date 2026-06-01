@@ -105,6 +105,31 @@ DECUHR adaptive integration algorithm for functions with vertex singularities.
 | `ReturnCode.Success`  | All error estimates meet the requested tolerances |
 | `ReturnCode.MaxIters` | Budget (`maxiters`) exhausted before convergence |
 | `ReturnCode.Failure`  | Invalid input parameters (see `sol.stats`) |
+
+## Interpreting the result and `MaxIters`
+
+DECUHR's error estimator is deliberately **conservative** (it inflates the
+pure extrapolation error by a heuristic factor, exactly as in the original
+Fortran `DEXTHR`).  As a consequence a returned `retcode = MaxIters` does **not**
+mean the result is wrong: the value in `sol.u` is frequently accurate to far
+better than the requested tolerance even when the *estimated* error
+(`sol.resid`) has not dropped below it.  When this happens, either raise
+`maxiters`/`wrksub` to let the estimate catch up, or simply trust `sol.u` and
+inspect `sol.resid`.
+
+`sol.stats` exposes diagnostics:
+
+| Field                | Meaning |
+|:---------------------|:--------|
+| `sol.stats.numevals` | Number of integrand evaluations performed |
+| `sol.stats.ifail`    | Raw DECUHR `IFAIL` code (0 = success, 1 = budget hit, …) |
+
+## Automatic differentiation
+
+`solve` is differentiable through ForwardDiff with respect to integrand
+parameters, **including** when `alpha` is auto-estimated: the exponent is
+estimated on the primal integrand (it is a structural property of the
+singularity) and the integration is then carried out in the dual number type.
 """
 struct DecuhrAlgorithm <: SciMLBase.AbstractIntegralAlgorithm
     key::Int
@@ -132,6 +157,24 @@ end
 # Internal driver — mirrors Fortran DECUHR
 # ============================================================
 const _MAXDIM = 15
+
+"""
+    _primal_to_float(x) -> Float64
+
+Return the primal `Float64` value of a real number, peeling off any
+ForwardDiff-style dual layers.  DECUHR does not depend on ForwardDiff, so we
+duck-type: a dual number exposes a `value` field holding its primal part
+(possibly itself a dual), which we recurse into.  Plain reals convert directly.
+
+This lets the `α`/`logf` auto-estimation (`DECALP`, Float64-only) run on the
+*primal* integrand when the user differentiates through `solve` — `α` is the
+structural degree of the vertex singularity and does not itself depend on the
+differentiation seed, so estimating it on the primal values is exact.
+"""
+_primal_to_float(x::AbstractFloat) = Float64(x)
+function _primal_to_float(x::Real)
+    return hasfield(typeof(x), :value) ? _primal_to_float(getfield(x, :value)) : Float64(x)
+end
 
 """
     _decuhr_driver(ndim, numfun, a, b, minpts, maxpts, funsub,
@@ -166,18 +209,33 @@ function _decuhr_driver(
 
     # --- Auto-estimate ALPHA (DECALP) when alpha ≤ -singul ---
     if alpha <= -Float64(singul)
-        if TV !== Float64
-            # Alpha auto-estimation uses Float64 arithmetic; provide alpha explicitly
-            # when using non-Float64 value types (e.g., dual numbers for AD).
-            return zeros(TV, numfun), zeros(TV, numfun), 0, 14
-        end
         alpha_ref = Ref(alpha)
         logf_ref = Ref(logf)
         x_work = zeros(Float64, ndim)
         funs_work = zeros(Float64, numfun)
+
+        # DECALP works in Float64.  For Float64 integrands use `funsub` directly;
+        # for non-Float64 value types (e.g. ForwardDiff duals when differentiating
+        # through `solve`) estimate α on the *primal* values via `_primal_to_float`.
+        # α is the structural homogeneity degree of the singularity and does not
+        # depend on the differentiation seed, so this is exact and keeps `solve`
+        # differentiable even when α is auto-estimated.
+        alpha_funsub = if TV === Float64
+            funsub
+        else
+            funs_tv = zeros(TV, numfun)
+            function (x, out64)
+                funsub(x, funs_tv)
+                @inbounds for j in eachindex(out64)
+                    out64[j] = _primal_to_float(funs_tv[j])
+                end
+                return nothing
+            end
+        end
+
         _estimate_alpha!(
             ndim, a, b, alpha_ref, singul, logf_ref,
-            funsub, x_work, funs_work
+            alpha_funsub, x_work, funs_work
         )
         alpha = alpha_ref[]
         logf = logf_ref[]
@@ -230,7 +288,7 @@ function Integrals.__solvebp_call(
         funsub = (x, funvls) -> (copyto!(funvls, f(x, p)); nothing)
     end
 
-    result, abserr, _, ifail = _decuhr_driver(
+    result, abserr, neval, ifail = _decuhr_driver(
         ndim, numfun,
         lb, ub,
         alg.minpts, maxiters,
@@ -252,7 +310,14 @@ function Integrals.__solvebp_call(
     err = numfun == 1 ? abserr[1] : abserr
 
     prob = Integrals.build_problem(cache)
-    return SciMLBase.build_solution(prob, alg, u, err; retcode = retcode)
+    # Expose the integrand-evaluation count (and raw IFAIL) via `sol.stats`.
+    # Useful in particular to diagnose `MaxIters`: the result may already meet
+    # the tolerance even though DECUHR's (conservative) error estimate did not.
+    return SciMLBase.build_solution(
+        prob, alg, u, err;
+        retcode = retcode,
+        stats = (numevals = neval, ifail = ifail)
+    )
 end
 
 end  # module DECUHR
