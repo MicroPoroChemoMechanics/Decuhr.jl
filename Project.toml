@@ -13,8 +13,9 @@ SciMLBase = "2, 3"
 julia = "1.9"
 
 [extras]
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Integrals = "de52edbc-65ea-441a-8357-d3a637375a31"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Integrals", "Test"]
+test = ["ForwardDiff", "Integrals", "Test"]

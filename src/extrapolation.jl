@@ -154,12 +154,20 @@ function _extrapolate!(
         end
 
     else
-        # Weighted correction: T(J,I) += UNEW(J)*(1 - BETA(N-UPDATE+1, I))
+        # Weighted correction of an existing U-term (Fortran: UPDATE ≥ N-STEPS).
+        #   Fortran: T(J,I) += UNEW(J) * (1 - BETA(N-UPDATE+1, I))
+        #
+        # Here STEPS = min(N, EMAX) and UPDATE ≥ N-STEPS, so the Fortran first
+        # index N-UPDATE+1 lies in 1..EMAX+1.  BETA is declared
+        # BETA(0:EMAX, 0:EMAX), so the single boundary value N-UPDATE+1 = EMAX+1
+        # (reached when N > EMAX and UPDATE = N-EMAX) is one past the first
+        # dimension — a latent out-of-bounds read in the original Fortran.
+        # We clamp it to EMAX (the last valid row, BETA(EMAX,·)), which is the
+        # safe and faithful interpretation; for every interior value the index
+        # equals the Fortran one exactly.  `fbi` is loop-invariant, so hoist it.
+        fbi = min(n_terms - update + 1, emax)
         for j in 1:numfun
             for i_f in 0:steps
-                # Fortran first-dim index: N-UPDATE+1 (0-based)
-                # Clamp to valid range [0, EMAX] to avoid OOB
-                fbi = min(n_terms - update + 1, emax)
                 beta_val = beta[fbi + 1, i_f + 1]   # BETA(fbi, i_f)
                 t[j, i_f + 1] += unew[j] * (1.0 - beta_val)
             end
