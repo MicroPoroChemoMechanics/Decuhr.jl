@@ -170,7 +170,8 @@ using ForwardDiff
 f8   = (u, p) -> (u[1] * u[2])^(-0.5) * exp(-p[1] * (u[1] + u[2]))
 prob8 = IntegralProblem(f8, (zeros(2), ones(2)), [0.0])
 
-# Function I(λ) — alpha=-0.5 provided explicitly (required for AD)
+# Function I(λ).  Here λ does not change the singularity structure, so we may
+# either supply alpha explicitly or let it be auto-estimated — both differentiate.
 I(λ) = solve(remake(prob8, p=[λ]),
              DecuhrAlgorithm(singul=2, alpha=-0.5);
              abstol=1e-7).u
@@ -185,6 +186,20 @@ exact_dI  = -8/3
 println("dI/dλ  ≈ ", dI,  "  (exact = ", exact_dI, ")")
 println("|err|    = ", abs(dI - exact_dI))
 println("d²I/dλ² ≈ ", d2I)
+```
+
+The same derivative is obtained **without** supplying `alpha`: it is
+auto-estimated on the primal integrand (a structural property of the
+singularity, independent of the differentiation seed) and the integration then
+runs in the dual-number type.
+
+```@example shared
+Iauto(λ) = solve(remake(prob8, p=[λ]),
+                 DecuhrAlgorithm(singul=2);   # alpha auto-estimated
+                 abstol=1e-7, maxiters=300_000).u
+
+println("dI/dλ (auto-α) ≈ ", ForwardDiff.derivative(Iauto, 0.0),
+        "   (exact = ", -8/3, ")")
 ```
 
 ### Multi-parameter gradient
@@ -255,4 +270,23 @@ sol9 = solve(prob5,
 println("retcode : ", sol9.retcode)       # MaxIters
 println("best estimate : ", sol9.u)      # value still available
 println("|err| ≈ ", abs(sol9.u - (3/2)^3))
+```
+
+---
+
+## 10 — Diagnostics: `sol.stats` and a conservative `MaxIters`
+
+`sol.stats` reports the number of integrand evaluations and the raw DECUHR
+code.  Because DECUHR's error estimator is **deliberately conservative**, a
+`MaxIters` return code often accompanies a result that is already accurate to
+far better than the requested tolerance — always inspect `sol.u`/`sol.resid`
+rather than trusting the return code alone.
+
+```@example shared
+sol10 = solve(prob, DecuhrAlgorithm(singul=2, alpha=-0.5); abstol=1e-12)
+
+println("retcode   : ", sol10.retcode)        # may be MaxIters at this tolerance
+println("numevals  : ", sol10.stats.numevals) # integrand evaluations
+println("ifail     : ", sol10.stats.ifail)    # raw DECUHR code
+println("I ≈ ", sol10.u, "   |err| = ", abs(sol10.u - 4.0))  # accurate regardless
 ```

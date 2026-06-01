@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.2 — 2026-06-01
 
 ### Added
 
@@ -26,6 +26,17 @@
 - Documented DECUHR's deliberately conservative error estimator: a `MaxIters`
   return code often accompanies a result that is already accurate to better
   than the requested tolerance.
+
+### Validation
+
+- The port was validated **bit-for-bit against the original Fortran `DECUHR`**
+  (Espelid & Genz, 1994), compiled locally with gfortran, over six test cases
+  with identical parameters: 5 of 6 results match to all 16 significant digits
+  (the sixth differs by ~1e-10, pure floating-point reassociation), and the
+  `IFAIL` / evaluation counts match on all six. In particular the conservative
+  error estimator (a `MaxIters` return code on an already-accurate result) is
+  confirmed to be **intrinsic to the algorithm** — the Fortran returns the same
+  `IFAIL` — and is therefore documented rather than altered.
 
 ### Internal
 
