@@ -1,7 +1,7 @@
 # Examples
 
 ```@setup shared
-using Integrals, DECUHR
+using Integrals, DECUHR, Printf
 ```
 
 ## 1 — Vertex singularity 2D, known ``\alpha``
@@ -15,7 +15,7 @@ I = \int_0^1\!\int_0^1 (x_1 x_2)^{-1/2}\, dx_1\, dx_2
 
 ```@example shared
 f    = (u, p) -> (u[1] * u[2])^(-0.5)
-prob = IntegralProblem(f, zeros(2), ones(2))
+prob = IntegralProblem(f, (zeros(2), ones(2)))
 sol  = solve(prob, DecuhrAlgorithm(singul=2, alpha=-0.5); abstol=1e-8)
 
 println("I  ≈ ", sol.u)
@@ -46,7 +46,7 @@ I = \int_0^{\pi/2}\!\int_0^{\pi/2} \sin(x_1)\cos(x_2)\, dx_1\, dx_2 = 1
 
 ```@example shared
 f3   = (u, p) -> sin(u[1]) * cos(u[2])
-prob3 = IntegralProblem(f3, zeros(2), fill(π/2, 2))
+prob3 = IntegralProblem(f3, (zeros(2), fill(π/2, 2)))
 sol3  = solve(prob3, DecuhrAlgorithm(); abstol=1e-10)
 
 println("I  ≈ ", sol3.u)
@@ -67,7 +67,7 @@ I_2 = \int_0^1\!\int_0^1 x_1 x_2\, dx = \tfrac{1}{4}
 
 ```@example shared
 f4   = (u, p) -> [u[1]^2 + u[2]^2,  u[1]*u[2]]
-prob4 = IntegralProblem(f4, zeros(2), ones(2))
+prob4 = IntegralProblem(f4, (zeros(2), ones(2)))
 sol4  = solve(prob4, DecuhrAlgorithm(); abstol=1e-9)
 
 exact4 = [2/3, 1/4]
@@ -84,10 +84,14 @@ I = \int_0^1\!\int_0^1\!\int_0^1 (x_1 x_2 x_3)^{-1/3}\, dx
   = \left(\frac{3}{2}\right)^3 = \frac{27}{8}
 ```
 
+The 3-D vertex singularity is challenging; `wrksub=50000` (now the default)
+allows sufficient refinement:
+
 ```@example shared
 f5   = (u, p) -> (u[1] * u[2] * u[3])^(-1/3)
-prob5 = IntegralProblem(f5, zeros(3), ones(3))
-sol5  = solve(prob5, DecuhrAlgorithm(singul=3, alpha=-1/3); abstol=1e-7)
+prob5 = IntegralProblem(f5, (zeros(3), ones(3)))
+sol5  = solve(prob5, DecuhrAlgorithm(singul=3, alpha=-1/3);
+              abstol=1e-7, reltol=1e-7, maxiters=1_500_000)
 
 println("I  ≈ ", sol5.u)
 println("|err| = ", abs(sol5.u - (3/2)^3))
@@ -103,7 +107,7 @@ I = \int_0^1\!\int_0^1 -\log(x_1 x_2)\, dx = 2
 
 ```@example shared
 f6   = (u, p) -> -log(u[1] * u[2])
-prob6 = IntegralProblem(f6, zeros(2), ones(2))
+prob6 = IntegralProblem(f6, (zeros(2), ones(2)))
 sol6  = solve(prob6, DecuhrAlgorithm(singul=2, alpha=0.0, logf=1); abstol=1e-8)
 
 println("I  ≈ ", sol6.u)
@@ -125,7 +129,7 @@ For ``\lambda = 0``: ``I(0) = 4``.
 
 ```@example shared
 f7   = (u, p) -> (u[1] * u[2])^(-0.5) * exp(-p[1] * (u[1] + u[2]))
-prob7 = IntegralProblem(f7, zeros(2), ones(2), [0.0])
+prob7 = IntegralProblem(f7, (zeros(2), ones(2)), [0.0])
 
 for λ in (0.0, 0.5, 1.0, 2.0)
     s = solve(remake(prob7, p=[λ]),
@@ -168,9 +172,10 @@ At ``\lambda = 0``:
 using ForwardDiff
 
 f8   = (u, p) -> (u[1] * u[2])^(-0.5) * exp(-p[1] * (u[1] + u[2]))
-prob8 = IntegralProblem(f8, zeros(2), ones(2), [0.0])
+prob8 = IntegralProblem(f8, (zeros(2), ones(2)), [0.0])
 
-# Function I(λ) — alpha=-0.5 provided explicitly (required for AD)
+# Function I(λ).  Here λ does not change the singularity structure, so we may
+# either supply alpha explicitly or let it be auto-estimated — both differentiate.
 I(λ) = solve(remake(prob8, p=[λ]),
              DecuhrAlgorithm(singul=2, alpha=-0.5);
              abstol=1e-7).u
@@ -185,6 +190,20 @@ exact_dI  = -8/3
 println("dI/dλ  ≈ ", dI,  "  (exact = ", exact_dI, ")")
 println("|err|    = ", abs(dI - exact_dI))
 println("d²I/dλ² ≈ ", d2I)
+```
+
+The same derivative is obtained **without** supplying `alpha`: it is
+auto-estimated on the primal integrand (a structural property of the
+singularity, independent of the differentiation seed) and the integration then
+runs in the dual-number type.
+
+```@example shared
+Iauto(λ) = solve(remake(prob8, p=[λ]),
+                 DecuhrAlgorithm(singul=2);   # alpha auto-estimated
+                 abstol=1e-7, maxiters=300_000).u
+
+println("dI/dλ (auto-α) ≈ ", ForwardDiff.derivative(Iauto, 0.0),
+        "   (exact = ", -8/3, ")")
 ```
 
 ### Multi-parameter gradient
@@ -209,7 +228,7 @@ I = \frac{1}{(1+\mu)^2},
 
 ```@example shared
 f9 = (u, p) -> (u[1] * u[2])^p[2] * exp(-p[1] * (u[1] + u[2]))
-prob9 = IntegralProblem(f9, zeros(2), ones(2), [0.0, -0.3])
+prob9 = IntegralProblem(f9, (zeros(2), ones(2)), [0.0, -0.3])
 
 # I as a function of p = [λ, μ] — singularity exponent = p[2], held fixed
 Ivec(p) = solve(remake(prob9, p=p),
@@ -255,4 +274,23 @@ sol9 = solve(prob5,
 println("retcode : ", sol9.retcode)       # MaxIters
 println("best estimate : ", sol9.u)      # value still available
 println("|err| ≈ ", abs(sol9.u - (3/2)^3))
+```
+
+---
+
+## 10 — Diagnostics: `sol.stats` and a conservative `MaxIters`
+
+`sol.stats` reports the number of integrand evaluations and the raw DECUHR
+code.  Because DECUHR's error estimator is **deliberately conservative**, a
+`MaxIters` return code often accompanies a result that is already accurate to
+far better than the requested tolerance — always inspect `sol.u`/`sol.resid`
+rather than trusting the return code alone.
+
+```@example shared
+sol10 = solve(prob, DecuhrAlgorithm(singul=2, alpha=-0.5); abstol=1e-12)
+
+println("retcode   : ", sol10.retcode)        # may be MaxIters at this tolerance
+println("numevals  : ", sol10.stats.numevals) # integrand evaluations
+println("ifail     : ", sol10.stats.ifail)    # raw DECUHR code
+println("I ≈ ", sol10.u, "   |err| = ", abs(sol10.u - 4.0))  # accurate regardless
 ```

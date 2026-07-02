@@ -1,10 +1,4 @@
 using Documenter
-using Documenter.Remotes
-using Pkg
-
-# Activate the package so DECUHR is loadable from the docs environment
-Pkg.develop(PackageSpec(path = joinpath(@__DIR__, "..")))
-
 using DECUHR
 
 DocMeta.setdocmeta!(
@@ -17,30 +11,31 @@ DocMeta.setdocmeta!(
 makedocs(
     clean    = false,
     modules  = [DECUHR],
+    remotes  = nothing,
     authors  = "Jean-François Barthélémy",
     sitename = "DECUHR.jl",
-    remotes  = Dict(
-        joinpath(@__DIR__, "..") => (Remotes.GitHub("MicMacTools", "DECUHR.jl"), "main"),
-    ),
     format   = Documenter.HTML(;
-        canonical        = "https://MicMacTools.github.io/DECUHR.jl",
-        edit_link        = "main",
-        assets           = ["assets/favicon.ico", "assets/custom.css"],
-        prettyurls       = (get(ENV, "CI", nothing) == "true"),
-        collapselevel    = 1,
-        ansicolor        = true,
+        canonical     = "https://MicroPoroChemoMechanics.github.io/DECUHR.jl",
+        repolink      = "https://github.com/MicroPoroChemoMechanics/DECUHR.jl",
+        edit_link     = "main",
+        assets        = ["assets/favicon.ico", "assets/custom.css"],
+        prettyurls    = (get(ENV, "CI", nothing) == "true"),
+        collapselevel = 1,
+        ansicolor     = true,
     ),
     pages = [
         "Home"          => "index.md",
         "Algorithm"     => "algorithm.md",
         "Examples"      => "examples.md",
         "API Reference" => "api.md",
+        "License"       => "license.md",
     ],
     checkdocs = :exports,
     warnonly  = true,
 )
 
 deploydocs(;
-    repo      = "github.com/MicMacTools/DECUHR.jl.git",
-    devbranch = "main",
+    repo         = "github.com/MicroPoroChemoMechanics/DECUHR.jl.git",
+    devbranch    = "main",
+    push_preview = false,
 )

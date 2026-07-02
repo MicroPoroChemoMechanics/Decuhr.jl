@@ -4,10 +4,10 @@
 
 # DECUHR
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MicMacTools.github.io/DECUHR.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://MicMacTools.github.io/DECUHR.jl/dev/)
-[![Build Status](https://github.com/MicMacTools/DECUHR.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/MicMacTools/DECUHR.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MicroPoroChemoMechanics.github.io/DECUHR.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://MicroPoroChemoMechanics.github.io/DECUHR.jl/dev/)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/MicroPoroChemoMechanics/DECUHR.jl/blob/main/LICENSE)
 [![code style: runic](https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-pink)](https://github.com/fredrikekre/Runic.jl)
 
 `DECUHR.jl` is a pure-Julia port of the DECUHR algorithm (Espelid &
@@ -30,18 +30,14 @@ via the `SciMLBase.AbstractIntegralAlgorithm` interface.
 
 ## Installation
 
-While the package is private:
+`DECUHR.jl` is released through the dedicated
+[MPCM-Registry](https://github.com/MicroPoroChemoMechanics/MPCM-Registry).
+Add the registry once, then install the package:
 
 ```julia
 julia> using Pkg
-julia> Pkg.add(url = "https://github.com/MicMacTools/DECUHR.jl.git")
-```
-
-Once registered in the Julia general registry:
-
-```julia
-julia> using Pkg
-julia> Pkg.add("DECUHR")
+pkg> registry add https://github.com/MicroPoroChemoMechanics/MPCM-Registry
+pkg> add DECUHR
 ```
 
 ## Quick start
@@ -51,7 +47,7 @@ using Integrals, DECUHR
 
 # ∫₀¹∫₀¹ (x·y)^(-0.5) dx dy = 4
 f = (u, _) -> (u[1] * u[2])^(-0.5)
-prob = IntegralProblem(f, zeros(2), ones(2))
+prob = IntegralProblem(f, (zeros(2), ones(2)))
 sol  = solve(prob, DecuhrAlgorithm(singul = 2, alpha = -0.5); abstol = 1e-8)
 
 @show sol.u           # ≈ 4.0
@@ -90,7 +86,17 @@ HTML output is placed in `docs/build/`.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+The Julia port (this package) is released under the MIT License — see
+[LICENSE](LICENSE) for details.
+
+### Upstream / third-party notice
+
+`DECUHR.jl` is a translation and modification of the Fortran 77 DECUHR
+routines of Espelid & Genz (Numerical Algorithms 8, 1994). The upstream
+distribution carries its own copyright notice, which **must be preserved in
+every copy and every derivative work** of this package. That notice is
+reproduced verbatim in [NOTICE](NOTICE); redistributors MUST ship both
+[LICENSE](LICENSE) and [NOTICE](NOTICE) unmodified.
 
 ## Citation
 
@@ -102,7 +108,7 @@ See [CITATION.cff](CITATION.cff) for citation details.
 @software{decuhr_jl,
   author = {Barthélémy, Jean-François},
   title  = {DECUHR.jl: Adaptive cubature for vertex singularities},
-  url    = {https://github.com/MicMacTools/DECUHR.jl},
+  url    = {https://github.com/MicroPoroChemoMechanics/DECUHR.jl},
   year   = {2026}
 }
 ```
@@ -112,3 +118,7 @@ See [CITATION.cff](CITATION.cff) for citation details.
 Developed by [Jean-François Barthélémy](https://github.com/jfbarthelemy),
 researcher at [Cerema](https://www.cerema.fr/en) in the research team
 [UMR MCD](https://mcd.univ-gustave-eiffel.fr/).
+
+The Fortran 77 → Julia translation and parts of the subsequent codebase
+were developed with the assistance of Anthropic's *Claude Code*, under
+the author's review and numerical validation.

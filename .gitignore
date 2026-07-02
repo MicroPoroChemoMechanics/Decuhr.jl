@@ -6,6 +6,10 @@
 /docs/build/
 /build/
 
+# Fortran reference validation: compiled artefacts (sources + logs are tracked)
+/fortran_ref/*.exe
+/fortran_ref/*.o
+
 /local
 
 .vscode
@@ -13,7 +17,11 @@
 .continue
 .claude
 CLAUDE.md
+# Local working notes (comparative study), not part of the package
+/bilan.md
+/PLAN_AMELIORATIONS.md
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
+bilan.md
