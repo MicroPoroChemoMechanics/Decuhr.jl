@@ -35,6 +35,14 @@
     @test solve(prob2, DecuhrAlgorithm(wrksub = 10)).stats.ifail == 17
 end
 
+@testset "Scalar domain raises a clear error" begin
+    # DECUHR is 2 ≤ ndim ≤ 15 only; a scalar domain used to die with an obscure
+    # MethodError deep in the driver.
+    f(u, _) = 1.0
+    prob = IntegralProblem(f, (0.0, 1.0))
+    @test_throws ArgumentError solve(prob, DecuhrAlgorithm())
+end
+
 @testset "ifail = 7 (bad bounds) at the driver level" begin
     # Integrals.jl's change of variables absorbs reversed bounds before DECUHR
     # sees them, so this code is only reachable through the driver.
