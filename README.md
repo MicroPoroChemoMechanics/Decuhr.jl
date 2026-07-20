@@ -1,7 +1,3 @@
-<p>
-  <img src="./docs/src/assets/logo.svg" width="100">
-</p>
-
 # DECUHR
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MicroPoroChemoMechanics.github.io/DECUHR.jl/stable/)
