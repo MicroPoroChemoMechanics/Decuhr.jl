@@ -18,7 +18,7 @@ makedocs(
         canonical     = "https://MicroPoroChemoMechanics.github.io/DECUHR.jl",
         repolink      = "https://github.com/MicroPoroChemoMechanics/DECUHR.jl",
         edit_link     = "main",
-        assets        = ["assets/favicon.ico", "assets/custom.css"],
+        assets        = ["assets/custom.css"],
         prettyurls    = (get(ENV, "CI", nothing) == "true"),
         collapselevel = 1,
         ansicolor     = true,
