@@ -1,4 +1,4 @@
-using Decuhr
+using DECUHR
 using Integrals
 using Test
 import SciMLBase
@@ -6,7 +6,7 @@ import ForwardDiff
 
 const RC = SciMLBase.ReturnCode
 
-@testset "Decuhr.jl" begin
+@testset "DECUHR.jl" begin
     include("test_canonical.jl")
     include("test_interface.jl")
     include("test_validation.jl")

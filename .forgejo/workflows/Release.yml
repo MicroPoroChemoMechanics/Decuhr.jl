@@ -46,7 +46,7 @@ jobs:
         run: |
           VERSION=v${{ steps.version.outputs.value }}
           RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
-            "https://codeberg.org/api/v1/repos/MicroPoroChemoMechanics/Decuhr.jl/releases" \
+            "https://codeberg.org/api/v1/repos/MicroPoroChemoMechanics/DECUHR.jl/releases" \
             -H "Authorization: token $PUSH_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"tag_name\":\"$VERSION\",\"name\":\"$VERSION\",\"body\":\"Release $VERSION\",\"draft\":false,\"prerelease\":false}")

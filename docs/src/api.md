@@ -3,7 +3,7 @@
 ## Module documentation
 
 ```@docs
-Decuhr.Decuhr
+DECUHR.DECUHR
 ```
 
 ## Algorithm type
@@ -18,7 +18,7 @@ DecuhrAlgorithm
 workflow.  No additional API is needed beyond what Integrals.jl provides.
 
 ```julia
-using Integrals, Decuhr
+using Integrals, DECUHR
 
 prob = IntegralProblem(f, (lb, ub))
 sol  = solve(prob, DecuhrAlgorithm(; kwargs...);
@@ -50,7 +50,7 @@ automatic differentiation with ForwardDiff, and budget-limit behaviour.
 ## Internal driver (advanced)
 
 ```@docs
-Decuhr._decuhr_driver
+DECUHR._decuhr_driver
 ```
 
 !!! note

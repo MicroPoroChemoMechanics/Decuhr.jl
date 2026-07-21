@@ -1,7 +1,7 @@
 # Examples
 
 ```@setup shared
-using Integrals, Decuhr, Printf
+using Integrals, DECUHR, Printf
 ```
 
 ## 1 — Vertex singularity 2D, known ``\alpha``

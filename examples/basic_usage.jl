@@ -1,7 +1,7 @@
-# basic_usage.jl — Decuhr.jl usage examples
+# basic_usage.jl — DECUHR.jl usage examples
 #
 # Demonstrates the DECUHR algorithm as a pluggable Integrals.jl solver.
-# Run from the Decuhr.jl directory with:
+# Run from the DECUHR.jl directory with:
 #
 #   julia --project=. examples/basic_usage.jl
 #
@@ -13,10 +13,10 @@
 using Pkg; Pkg.activate(joinpath(@__DIR__, "..")); Pkg.instantiate()
 
 using Integrals
-using Decuhr
+using DECUHR
 
 println("=" ^ 60)
-println("Decuhr.jl — Integration examples")
+println("DECUHR.jl — Integration examples")
 println("=" ^ 60)
 
 # ──────────────────────────────────────────────────────────────
